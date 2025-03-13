@@ -1,0 +1,76 @@
+PODS:
+  - Apptics-SDK (2.1.2):
+    - Apptics-SDK/AnalyticsWithKSCrash (= 2.1.2)
+  - Apptics-SDK/AnalyticsWithKSCrash (2.1.2):
+    - Apptics-SDK/Scripts
+    - AppticsAnalytics/CoreWithKSCrash (= 2.1.2)
+  - Apptics-SDK/Scripts (2.1.2)
+  - apptics_flutter (0.0.1):
+    - Apptics-SDK (= 2.1.2)
+    - AppticsFeedbackKitSwift (= 2.1.2)
+    - AppticsInAppUpdate (= 2.1.2)
+    - AppticsRemoteConfig (= 2.1.2)
+    - Flutter
+  - AppticsAnalytics/Apptics (2.1.2):
+    - AppticsAnalytics/JWT
+  - AppticsAnalytics/CoreWithKSCrash (2.1.2):
+    - AppticsAnalytics/Apptics
+    - AppticsAnalytics/CrashKit
+    - AppticsAnalytics/EventTracker
+    - AppticsAnalytics/ScreenTracker
+  - AppticsAnalytics/CrashKit (2.1.2):
+    - AppticsAnalytics/KSCrash
+  - AppticsAnalytics/EventTracker (2.1.2)
+  - AppticsAnalytics/JWT (2.1.2)
+  - AppticsAnalytics/KSCrash (2.1.2)
+  - AppticsAnalytics/ScreenTracker (2.1.2)
+  - AppticsFeedbackKit (2.1.2):
+    - AppticsFeedbackKit/FeedbackKit (= 2.1.2)
+  - AppticsFeedbackKit/FeedbackKit (2.1.2):
+    - AppticsAnalytics/Apptics (= 2.1.2)
+  - AppticsFeedbackKitSwift (2.1.2):
+    - AppticsFeedbackKitSwift/AppticsFeedbackKitSwift (= 2.1.2)
+  - AppticsFeedbackKitSwift/AppticsFeedbackKitSwift (2.1.2):
+    - AppticsFeedbackKit (= 2.1.2)
+  - AppticsInAppUpdate (2.1.2):
+    - AppticsInAppUpdate/AppUpdate (= 2.1.2)
+  - AppticsInAppUpdate/AppUpdate (2.1.2):
+    - AppticsAnalytics/Apptics (= 2.1.2)
+  - AppticsRemoteConfig (2.1.2):
+    - AppticsRemoteConfig/RemoteConfig (= 2.1.2)
+  - AppticsRemoteConfig/RemoteConfig (2.1.2):
+    - AppticsAnalytics/Apptics (= 2.1.2)
+  - Flutter (1.0.0)
+
+DEPENDENCIES:
+  - apptics_flutter (from `.symlinks/plugins/apptics_flutter/ios`)
+  - Flutter (from `Flutter`)
+
+SPEC REPOS:
+  trunk:
+    - Apptics-SDK
+    - AppticsAnalytics
+    - AppticsFeedbackKit
+    - AppticsFeedbackKitSwift
+    - AppticsInAppUpdate
+    - AppticsRemoteConfig
+
+EXTERNAL SOURCES:
+  apptics_flutter:
+    :path: ".symlinks/plugins/apptics_flutter/ios"
+  Flutter:
+    :path: Flutter
+
+SPEC CHECKSUMS:
+  Apptics-SDK: d65b1783011bdbac92b08d6a7661c6b0c5277661
+  apptics_flutter: 368e6c0a25bb2bf50921ec4cd4da0bd845dcb048
+  AppticsAnalytics: a4b16cad581f13c14c7fab854fdcf954227f0c8c
+  AppticsFeedbackKit: 92a890681d9c812c9117af2e37d7f344d2fae7f3
+  AppticsFeedbackKitSwift: 6b5822d4394d81bacf2895a736cfa42dec7d1e7a
+  AppticsInAppUpdate: 764c887b308a080b6064297fb6b3e71735087670
+  AppticsRemoteConfig: 5ae354591b22bb2ae0fc00569d9b1d707b59ccbc
+  Flutter: e0871f40cf51350855a761d2e70bf5af5b9b5de7
+
+PODFILE CHECKSUM: e218bbe94019c007cbe458d433168d093238b830
+
+COCOAPODS: 1.15.2

@@ -30,21 +30,15 @@ flutter_ios_podfile_setup
 target 'Runner' do
   use_frameworks!
   use_modular_headers!
+  # Pre build script will register the app version, upload dSYM file to the server and add apptics specific information to the main info.plist which will be used by the SDK.
+    script_phase :name => 'Apptics pre build', :script => 'sh "./Pods/Apptics-SDK/scripts/run" --upload-symbols-for-configurations="Release, Appstore"', :execution_position => :before_compile
 
+    
   flutter_install_all_ios_pods File.dirname(File.realpath(__FILE__))
   target 'RunnerTests' do
     inherit! :search_paths
   end
 end
-
-source 'https://github.com/CocoaPods/Specs.git'
-  target '[TARGET NAME]' do
-    pod 'Apptics-SDK'
-
-    # Pre build script will register the app version, upload dSYM file to the server and add apptics specific information to the main info.plist which will be used by the SDK.
-    script_phase :name => 'Apptics pre build', :script => 'sh "./Pods/Apptics-SDK/scripts/run" --upload-symbols-for-configurations="Release, Appstore"', :execution_position => :before_compile 
-
-  end
 
 post_install do |installer|
   installer.pods_project.targets.each do |target|
