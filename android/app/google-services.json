@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "770804951881",
+    "project_id": "apptics-push-notification-test",
+    "storage_bucket": "apptics-push-notification-test.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:770804951881:android:a18e8d084bce9fe99a8898",
+        "android_client_info": {
+          "package_name": "com.example.apptics_push_notofication"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDSKS728VniTrtJZGZKNIZVSl0SwLVXGkk"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
