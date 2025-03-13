@@ -1,0 +1,35 @@
+
+buildscript {
+    repositories {
+        google()
+        mavenCentral()
+        maven {
+            url "https://maven.zohodl.com/"
+        }
+    }
+    dependencies {
+        classpath "com.zoho.apptics:apptics-plugin:0.2.4"
+    }
+}
+allprojects {
+    repositories {
+        google()
+        mavenCentral()
+        maven {
+            url "https://maven.zohodl.com/"
+        }
+    }
+}
+
+rootProject.buildDir = "../build"
+subprojects {
+    project.buildDir = "${rootProject.buildDir}/${project.name}"
+}
+subprojects {
+    project.evaluationDependsOn(":app")
+}
+
+tasks.register("clean", Delete) {
+    delete rootProject.buildDir
+}
+
