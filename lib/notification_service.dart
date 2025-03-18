@@ -1,5 +1,9 @@
+import 'dart:io';
+
 import 'package:firebase_messaging/firebase_messaging.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
+
 import 'package:timezone/data/latest.dart' as tz;
 import 'package:timezone/timezone.dart' as tz;
 
@@ -9,6 +13,27 @@ class NotificationService {
       NotificationService._privateConstructor();
 
   late FlutterLocalNotificationsPlugin flutterLocalNotificationsPlugin;
+  final AndroidNotificationChannel generalChannel =
+      const AndroidNotificationChannel(
+    'general_channel',
+    'General Notifications',
+    description: 'Channel for general notifications',
+    importance: Importance.defaultImportance,
+  );
+  final AndroidNotificationChannel promotionChannel =
+      const AndroidNotificationChannel(
+    'promotion_channel',
+    'Promotion Notifications',
+    description: 'Channel for promotional notifications',
+    importance: Importance.defaultImportance,
+  );
+  final AndroidNotificationChannel criticalChannel =
+      const AndroidNotificationChannel(
+    'critical_channel',
+    'Critical Alerts',
+    description: 'Channel for critical alerts',
+    importance: Importance.high,
+  );
 
   Future<void> init() async {
     flutterLocalNotificationsPlugin = FlutterLocalNotificationsPlugin();
@@ -38,63 +63,34 @@ class NotificationService {
         flutterLocalNotificationsPlugin.resolvePlatformSpecificImplementation<
             AndroidFlutterLocalNotificationsPlugin>();
     if (androidPlugin != null) {
-      await androidPlugin.createNotificationChannel(
-        const AndroidNotificationChannel(
-          'general_channel',
-          'General Notifications',
-          description: 'Channel for general notifications',
-          importance: Importance.defaultImportance,
-        ),
-      );
-      await androidPlugin.createNotificationChannel(
-        const AndroidNotificationChannel(
-          'promotion_channel',
-          'Promotion Notifications',
-          description: 'Channel for promotional notifications',
-          importance: Importance.defaultImportance,
-        ),
-      );
-      await androidPlugin.createNotificationChannel(
-        const AndroidNotificationChannel(
-          'critical_channel',
-          'Critical Alerts',
-          description: 'Channel for critical alerts',
-          importance: Importance.high,
-        ),
-      );
+      await androidPlugin.createNotificationChannel(generalChannel);
+      await androidPlugin.createNotificationChannel(promotionChannel);
+      await androidPlugin.createNotificationChannel(criticalChannel);
     }
   }
 
   Future<void> sendLocalNotification(
-    NotificationChennal channelType,
-  ) async {
-    String channelId;
-    String channelName;
+      {required NotificationChannelType channelType,
+      String? title,
+      String? body,
+      String? payload}) async {
+    AndroidNotificationChannel selectedChannel;
     Importance importance;
     Priority priority;
 
     switch (channelType) {
-      case NotificationChennal.promotion:
-        channelId = 'promotion_channel';
-        channelName = 'Promotion Notifications';
+      case NotificationChannelType.promotion:
+        selectedChannel = promotionChannel;
         importance = Importance.defaultImportance;
         priority = Priority.defaultPriority;
         break;
-      case NotificationChennal.critical:
-        channelId = 'critical_channel';
-        channelName = 'Critical Alerts';
+      case NotificationChannelType.critical:
+        selectedChannel = criticalChannel;
         importance = Importance.high;
         priority = Priority.high;
         break;
-      case NotificationChennal.general:
-        channelId = 'general_channel';
-        channelName = 'General Notifications';
-        importance = Importance.defaultImportance;
-        priority = Priority.defaultPriority;
-        break;
-      default:
-        channelId = 'general_channel';
-        channelName = 'General Notifications';
+      case NotificationChannelType.general:
+        selectedChannel = generalChannel;
         importance = Importance.defaultImportance;
         priority = Priority.defaultPriority;
         break;
@@ -103,9 +99,9 @@ class NotificationService {
     const DarwinNotificationDetails iOSDetails = DarwinNotificationDetails();
 
     AndroidNotificationDetails androidDetails = AndroidNotificationDetails(
-      channelId,
-      channelName,
-      channelDescription: 'Channel for $channelName',
+      selectedChannel.id,
+      selectedChannel.name,
+      channelDescription: selectedChannel.description,
       importance: importance,
       priority: priority,
     );
@@ -114,37 +110,102 @@ class NotificationService {
         NotificationDetails(android: androidDetails, iOS: iOSDetails);
 
     await flutterLocalNotificationsPlugin.show(
-      DateTime.now().millisecondsSinceEpoch.remainder(100000),
-      '$channelName Title',
-      'This is a $channelType notification',
-      platformDetails,
-    );
+        DateTime.now().millisecondsSinceEpoch.remainder(100000),
+        title ?? "Notification",
+        body,
+        platformDetails,
+        payload: payload);
   }
 
-  Future<void> scheduleLocalNotification() async {
-    const AndroidNotificationDetails androidDetails =
-        AndroidNotificationDetails(
-      'scheduled_channel_id',
-      'Scheduled Notifications',
-      channelDescription: 'Channel for scheduled notifications',
-      importance: Importance.max,
-      priority: Priority.high,
-    );
-    const DarwinNotificationDetails iOSDetails = DarwinNotificationDetails();
-    const NotificationDetails platformDetails =
-        NotificationDetails(android: androidDetails, iOS: iOSDetails);
+  Future<void> scheduleNotification({
+    required NotificationChannelType channelType,
+    required Duration duration,
+    String? title,
+    String? body,
+    String? payload,
+  }) async {
+    // Check and request permission first
+    final hasPermission = await _requestScheduleExactAlarmPermission();
+    if (!hasPermission) {
+      throw PlatformException(
+        code: 'permission_denied',
+        message: 'Exact alarm permission not granted',
+      );
+    }
+    AndroidNotificationChannel selectedChannel;
+    Importance importance;
+    Priority priority;
 
-    await flutterLocalNotificationsPlugin.zonedSchedule(
-      0,
-      'Scheduled Title',
-      'Scheduled Body',
-      // Notification will trigger after 5 seconds from now.
-      tz.TZDateTime.now(tz.local).add(const Duration(seconds: 5)),
-      platformDetails,
-      androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
-      uiLocalNotificationDateInterpretation:
-          UILocalNotificationDateInterpretation.absoluteTime,
+    switch (channelType) {
+      case NotificationChannelType.promotion:
+        selectedChannel = promotionChannel;
+        importance = Importance.defaultImportance;
+        priority = Priority.defaultPriority;
+        break;
+      case NotificationChannelType.critical:
+        selectedChannel = criticalChannel;
+        importance = Importance.high;
+        priority = Priority.high;
+        break;
+      case NotificationChannelType.general:
+        selectedChannel = generalChannel;
+        importance = Importance.defaultImportance;
+        priority = Priority.defaultPriority;
+        break;
+    }
+
+    const DarwinNotificationDetails iOSDetails = DarwinNotificationDetails();
+
+    AndroidNotificationDetails androidDetails = AndroidNotificationDetails(
+      selectedChannel.id,
+      selectedChannel.name,
+      channelDescription: selectedChannel.description,
+      importance: importance,
+      priority: priority,
     );
+
+    NotificationDetails platformDetails =
+        NotificationDetails(android: androidDetails, iOS: iOSDetails);
+    final now = DateTime.now();
+    final scheduledDate = tz.TZDateTime.from(
+      now.add(duration),
+      tz.local,
+    );
+
+    // Debug prints
+    print("Local TZ time: ${scheduledDate.toString()}");
+    print("Current Local time: ${DateTime.now().toLocal()}");
+
+    try {
+      await flutterLocalNotificationsPlugin.zonedSchedule(
+          DateTime.now().millisecondsSinceEpoch.remainder(100000),
+          title ?? "Scheduled Notification",
+          body,
+          scheduledDate,
+          platformDetails,
+          androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
+          uiLocalNotificationDateInterpretation:
+              UILocalNotificationDateInterpretation.absoluteTime,
+          payload: payload,
+          matchDateTimeComponents: DateTimeComponents.time);
+
+      print("Notification scheduled for $scheduledDate");
+    } catch (e) {
+      print("Error scheduling notification: $e");
+    }
+  }
+
+  Future<bool> _requestScheduleExactAlarmPermission() async {
+    if (Platform.isAndroid) {
+      final androidImplementation =
+          flutterLocalNotificationsPlugin.resolvePlatformSpecificImplementation<
+              AndroidFlutterLocalNotificationsPlugin>();
+
+      final hasPermission =
+          await androidImplementation?.requestExactAlarmsPermission();
+      return hasPermission ?? false;
+    }
+    return true;
   }
 
   void _setupFCMListeners() {
@@ -175,9 +236,9 @@ class NotificationService {
   Future<void> _showLocalNotification(RemoteNotification notification) async {
     const AndroidNotificationDetails androidDetails =
         AndroidNotificationDetails(
-      'your_channel_id',
-      'your_channel_name',
-      channelDescription: 'your_channel_description',
+      'fcm_channel', // Use a dedicated channel for FCM
+      'FCM Notifications',
+      channelDescription: 'Notifications received via Firebase Cloud Messaging',
       importance: Importance.max,
       priority: Priority.high,
     );
@@ -199,11 +260,11 @@ class NotificationService {
   }
 }
 
-enum NotificationChennal {
+enum NotificationChannelType {
   promotion("promo"),
   general("general"),
   critical("critical");
 
   final String value;
-  const NotificationChennal(this.value);
+  const NotificationChannelType(this.value);
 }

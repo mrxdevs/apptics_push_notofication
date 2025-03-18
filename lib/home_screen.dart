@@ -24,8 +24,11 @@ class _MyHomePageState extends State<MyHomePage> {
   }
 
   void _simulatePushNotification() {
-    NotificationService.instance
-        .sendLocalNotification(NotificationChennal.general); // simulate push
+    NotificationService.instance.sendLocalNotification(
+        channelType: NotificationChannelType.general,
+        title: "My title is this",
+        body: "This is my body",
+        payload: "https://picsum.photos/200/300"); // simulate push
     _addLog("Simulated push notification sent");
   }
 
@@ -34,6 +37,14 @@ class _MyHomePageState extends State<MyHomePage> {
   }
 
   void _scheduleNotification() {
+    NotificationService.instance.scheduleNotification(
+      channelType: NotificationChannelType.general,
+      duration: Duration(seconds: 3),
+      title: "Scheduled Reminder",
+      body: "This is a scheduled notification!",
+      payload: "scheduled_payload",
+    );
+    print("Scedule Notification");
     _addLog("Scheduled notification");
   }
 
