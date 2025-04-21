@@ -1,9 +1,9 @@
 import 'dart:io';
 
-import 'package:android_alarm_manager_plus/android_alarm_manager_plus.dart';
+// import 'package:android_alarm_manager_plus/android_alarm_manager_plus.dart';
 import 'package:apptics_push_notofication/home_screen.dart';
 import 'package:apptics_push_notofication/notification_service.dart';
-import 'package:firebase_core/firebase_core.dart';
+// import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -21,16 +21,16 @@ Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  await AndroidAlarmManager.initialize();
+  // await AndroidAlarmManager.initialize();
   // Set the background messaging handler early on
-  await Firebase.initializeApp();
-  String? token = await FirebaseMessaging.instance.getToken();
-  print("Firebase token: $token");
-  await FirebaseMessaging.instance.requestPermission();
-  if (Platform.isAndroid) {
-    await FirebaseMessaging.instance.setAutoInitEnabled(true);
-  }
-  FirebaseMessaging.onBackgroundMessage(_firebaseMessagingBackgroundHandler);
+  // await Firebase.initializeApp();
+  // String? token = await FirebaseMessaging.instance.getToken();
+  // print("Firebase token: $token");
+  // await FirebaseMessaging.instance.requestPermission();
+  // if (Platform.isAndroid) {
+  //   await FirebaseMessaging.instance.setAutoInitEnabled(true);
+  // }
+  // FirebaseMessaging.onBackgroundMessage(_firebaseMessagingBackgroundHandler);
   runApp(const MyApp());
 }
 
