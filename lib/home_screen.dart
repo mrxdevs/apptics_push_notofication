@@ -1,13 +1,22 @@
 import 'package:flutter/material.dart';
 import 'package:apptics_push_notofication/notification_service.dart';
+import 'package:flutter_local_notifications/flutter_local_notifications.dart';
+
+import 'more_notification.dart';
 
 class MyHomePage extends StatefulWidget {
-  final String title;
-
   const MyHomePage({
+    this.notificationAppLaunchDetails,
     super.key,
-    required this.title,
   });
+  // assthis is home screen
+  static const String routeName = '/';
+
+  /// The [NotificationAppLaunchDetails] is used to determine if the app was launched
+
+  final NotificationAppLaunchDetails? notificationAppLaunchDetails;
+  bool get didNotificationLaunchApp =>
+      notificationAppLaunchDetails?.didNotificationLaunchApp ?? false;
 
   @override
   State<MyHomePage> createState() => _MyHomePageState();
@@ -15,6 +24,11 @@ class MyHomePage extends StatefulWidget {
 
 class _MyHomePageState extends State<MyHomePage> {
   List<String> _logs = [];
+
+  NotificationChannelType _selectedChannel = NotificationChannelType.general;
+  String? _customSound;
+  Priority? _priority;
+  Importance? _importance;
 
   void _addLog(String log) {
     setState(() {
@@ -46,6 +60,21 @@ class _MyHomePageState extends State<MyHomePage> {
     );
     print("Scedule Notification");
     _addLog("Scheduled notification");
+  }
+
+  void _scheduleCustomNotification() {
+    NotificationService.instance.scheduleNotification(
+      channelType: _selectedChannel,
+      duration: Duration(seconds: 5),
+      title: "Custom Scheduled Notification",
+      body: "This is a custom scheduled notification!",
+      payload: "navigate:/notificationPage",
+      sound: _customSound,
+      importance: _importance,
+      priority: _priority,
+    );
+    _addLog(
+        "Scheduled custom notification (channel: $_selectedChannel, sound: $_customSound, priority: $_priority, importance: $_importance)");
   }
 
   Future<void> _pickTiming() async {
@@ -106,36 +135,162 @@ class _MyHomePageState extends State<MyHomePage> {
                   borderRadius: BorderRadius.circular(16)),
               child: Padding(
                 padding: const EdgeInsets.all(20.0),
-                child: Wrap(
-                  spacing: 12,
-                  runSpacing: 12,
-                  alignment: WrapAlignment.center,
+                child: Column(
                   children: [
-                    _buildActionButton(
-                      icon: Icons.notifications_active,
-                      label: 'Simulate Push',
-                      onPressed: _simulatePushNotification,
+                    Wrap(
+                      spacing: 12,
+                      runSpacing: 12,
+                      alignment: WrapAlignment.center,
+                      children: [
+                        _buildActionButton(
+                          icon: Icons.notifications_active,
+                          label: 'Simulate Push',
+                          onPressed: _simulatePushNotification,
+                        ),
+                        _buildActionButton(
+                          icon: Icons.notifications,
+                          label: 'More Notifications',
+                          onPressed: () {
+                            Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (context) =>
+                                      const MoreNotification(),
+                                ));
+                          },
+                        ),
+                        _buildActionButton(
+                          icon: Icons.list,
+                          label: 'List Background',
+                          onPressed: _listBackgroundNotifications,
+                        ),
+                        _buildActionButton(
+                          icon: Icons.schedule,
+                          label: 'Schedule',
+                          onPressed: _scheduleNotification,
+                        ),
+                        _buildActionButton(
+                          icon: Icons.access_time,
+                          label: 'Pick Timing',
+                          onPressed: _pickTiming,
+                        ),
+                        _buildActionButton(
+                          icon: Icons.clear,
+                          label: 'Clear Logs',
+                          onPressed: _clearLogs,
+                          color: clearButtonColor,
+                        ),
+                        _buildActionButton(
+                          icon: Icons.schedule_send,
+                          label: 'Schedule Custom',
+                          onPressed: _scheduleCustomNotification,
+                          color: Colors.green,
+                        ),
+                      ],
                     ),
-                    _buildActionButton(
-                      icon: Icons.list,
-                      label: 'List Background',
-                      onPressed: _listBackgroundNotifications,
+                    const SizedBox(height: 12),
+                    Row(
+                      children: [
+                        const Text("Channel: "),
+                        Expanded(
+                          child: DropdownButton<NotificationChannelType>(
+                            value: _selectedChannel,
+                            items: NotificationChannelType.values
+                                .map((e) => DropdownMenuItem(
+                                      value: e,
+                                      child: Text(e.name),
+                                    ))
+                                .toList(),
+                            onChanged: (val) {
+                              setState(() {
+                                _selectedChannel = val!;
+                              });
+                            },
+                          ),
+                        ),
+                        const SizedBox(width: 16),
+                        const Text("Sound: "),
+                        Expanded(
+                          child: DropdownButton<String>(
+                            value: _customSound,
+                            hint: const Text("Default"),
+                            items: [
+                              null,
+                              "notification_sound",
+                              "slow_spring_board"
+                            ]
+                                .map((e) => DropdownMenuItem(
+                                      value: e,
+                                      child: Text(e ?? "Default"),
+                                    ))
+                                .toList(),
+                            onChanged: (val) {
+                              setState(() {
+                                _customSound = val;
+                              });
+                            },
+                          ),
+                        ),
+                      ],
                     ),
-                    _buildActionButton(
-                      icon: Icons.schedule,
-                      label: 'Schedule',
-                      onPressed: _scheduleNotification,
-                    ),
-                    _buildActionButton(
-                      icon: Icons.access_time,
-                      label: 'Pick Timing',
-                      onPressed: _pickTiming,
-                    ),
-                    _buildActionButton(
-                      icon: Icons.clear,
-                      label: 'Clear Logs',
-                      onPressed: _clearLogs,
-                      color: clearButtonColor,
+                    Row(
+                      children: [
+                        const Text("Priority: "),
+                        Expanded(
+                          child: DropdownButton<Priority>(
+                            value: _priority,
+                            hint: const Text("Default"),
+                            items: [
+                              null,
+                              Priority.min,
+                              Priority.low,
+                              Priority.defaultPriority,
+                              Priority.high,
+                              Priority.max,
+                            ]
+                                .map((e) => DropdownMenuItem(
+                                      value: e,
+                                      child: Text(
+                                          e?.toString().split('.').last ??
+                                              "Default"),
+                                    ))
+                                .toList(),
+                            onChanged: (val) {
+                              setState(() {
+                                _priority = val;
+                              });
+                            },
+                          ),
+                        ),
+                        const SizedBox(width: 16),
+                        const Text("Importance: "),
+                        Expanded(
+                          child: DropdownButton<Importance>(
+                            value: _importance,
+                            hint: const Text("Default"),
+                            items: [
+                              null,
+                              Importance.min,
+                              Importance.low,
+                              Importance.defaultImportance,
+                              Importance.high,
+                              Importance.max,
+                            ]
+                                .map((e) => DropdownMenuItem(
+                                      value: e,
+                                      child: Text(
+                                          e?.toString().split('.').last ??
+                                              "Default"),
+                                    ))
+                                .toList(),
+                            onChanged: (val) {
+                              setState(() {
+                                _importance = val;
+                              });
+                            },
+                          ),
+                        ),
+                      ],
                     ),
                   ],
                 ),
@@ -181,6 +336,20 @@ class _MyHomePageState extends State<MyHomePage> {
           ],
         ),
       ),
+    );
+  }
+}
+
+// Add a simple notification page for navigation demo
+class NotificationPage extends StatelessWidget {
+  const NotificationPage({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(title: const Text("Notification Clicked")),
+      body: const Center(
+          child: Text("You have navigated here from a notification!")),
     );
   }
 }

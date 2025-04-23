@@ -7,10 +7,35 @@ import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:timezone/data/latest.dart' as tz;
 import 'package:timezone/timezone.dart' as tz;
 
+typedef NotificationTapCallback = void Function(String? payload);
+
 class NotificationService {
   NotificationService._privateConstructor();
   static final NotificationService instance =
       NotificationService._privateConstructor();
+
+  NotificationTapCallback? onNotificationTap;
+
+  DarwinNotificationDetails iOSDetails1 = DarwinNotificationDetails(
+    // Sound
+    presentSound: true,
+    sound: 'notification_sound.aiff', // Custom sound file in iOS bundle
+
+    // Alert settings
+    presentAlert: true,
+    presentBadge: true,
+    badgeNumber: 1,
+
+    // Visual appearance
+    subtitle: 'Optional subtitle',
+    threadIdentifier: 'thread1', // Group similar notifications
+
+    // Interaction options
+    categoryIdentifier: 'generle', // For custom actions
+    interruptionLevel: InterruptionLevel.active,
+
+    // Attachments (like images)
+  );
 
   late FlutterLocalNotificationsPlugin flutterLocalNotificationsPlugin;
   final AndroidNotificationChannel generalChannel =
@@ -35,8 +60,9 @@ class NotificationService {
     importance: Importance.high,
   );
 
-  Future<void> init() async {
+  Future<void> init({NotificationTapCallback? onTap}) async {
     flutterLocalNotificationsPlugin = FlutterLocalNotificationsPlugin();
+    onNotificationTap = onTap;
 
     const AndroidInitializationSettings initializationSettingsAndroid =
         AndroidInitializationSettings('@mipmap/ic_launcher');
@@ -47,7 +73,15 @@ class NotificationService {
             android: initializationSettingsAndroid,
             iOS: initializationSettingsIOS);
 
-    await flutterLocalNotificationsPlugin.initialize(initializationSettings);
+    await flutterLocalNotificationsPlugin.initialize(
+      initializationSettings,
+      onDidReceiveNotificationResponse: (NotificationResponse response) {
+        final payload = response.payload;
+        if (onNotificationTap != null) {
+          onNotificationTap!(payload);
+        }
+      },
+    );
     await FirebaseMessaging.instance.requestPermission(
       alert: true,
       badge: true,
@@ -69,52 +103,62 @@ class NotificationService {
     }
   }
 
-  Future<void> sendLocalNotification(
-      {required NotificationChannelType channelType,
-      String? title,
-      String? body,
-      String? payload}) async {
+  Future<void> sendLocalNotification({
+    required NotificationChannelType channelType,
+    String? title,
+    String? body,
+    String? payload,
+    String? sound,
+    Importance? importance,
+    Priority? priority,
+  }) async {
     AndroidNotificationChannel selectedChannel;
-    Importance importance;
-    Priority priority;
+    Importance resolvedImportance;
+    Priority resolvedPriority;
 
     switch (channelType) {
       case NotificationChannelType.promotion:
         selectedChannel = promotionChannel;
-        importance = Importance.defaultImportance;
-        priority = Priority.defaultPriority;
+        resolvedImportance = importance ?? Importance.defaultImportance;
+        resolvedPriority = priority ?? Priority.defaultPriority;
         break;
       case NotificationChannelType.critical:
         selectedChannel = criticalChannel;
-        importance = Importance.high;
-        priority = Priority.high;
+        resolvedImportance = importance ?? Importance.high;
+        resolvedPriority = priority ?? Priority.high;
         break;
       case NotificationChannelType.general:
         selectedChannel = generalChannel;
-        importance = Importance.defaultImportance;
-        priority = Priority.defaultPriority;
+        resolvedImportance = importance ?? Importance.defaultImportance;
+        resolvedPriority = priority ?? Priority.defaultPriority;
         break;
     }
 
-    const DarwinNotificationDetails iOSDetails = DarwinNotificationDetails();
-
-    AndroidNotificationDetails androidDetails = AndroidNotificationDetails(
+    final androidDetails = AndroidNotificationDetails(
       selectedChannel.id,
       selectedChannel.name,
       channelDescription: selectedChannel.description,
-      importance: importance,
-      priority: priority,
+      importance: resolvedImportance,
+      priority: resolvedPriority,
+      sound: sound != null ? RawResourceAndroidNotificationSound(sound) : null,
     );
 
-    NotificationDetails platformDetails =
-        NotificationDetails(android: androidDetails, iOS: iOSDetails);
+    final iOSDetails = DarwinNotificationDetails(
+      sound: sound != null ? '$sound.aiff' : null,
+    );
+
+    final platformDetails = NotificationDetails(
+      android: androidDetails,
+      iOS: iOSDetails,
+    );
 
     await flutterLocalNotificationsPlugin.show(
-        DateTime.now().millisecondsSinceEpoch.remainder(100000),
-        title ?? "Notification",
-        body,
-        platformDetails,
-        payload: payload);
+      DateTime.now().millisecondsSinceEpoch.remainder(100000),
+      title ?? "Notification",
+      body,
+      platformDetails,
+      payload: payload,
+    );
   }
 
   Future<void> scheduleNotification({
@@ -123,6 +167,9 @@ class NotificationService {
     String? title,
     String? body,
     String? payload,
+    String? sound,
+    Importance? importance,
+    Priority? priority,
   }) async {
     // Check and request permission first
     final hasPermission = await _requestScheduleExactAlarmPermission();
@@ -133,39 +180,44 @@ class NotificationService {
       );
     }
     AndroidNotificationChannel selectedChannel;
-    Importance importance;
-    Priority priority;
+    Importance resolvedImportance;
+    Priority resolvedPriority;
 
     switch (channelType) {
       case NotificationChannelType.promotion:
         selectedChannel = promotionChannel;
-        importance = Importance.defaultImportance;
-        priority = Priority.defaultPriority;
+        resolvedImportance = importance ?? Importance.defaultImportance;
+        resolvedPriority = priority ?? Priority.defaultPriority;
         break;
       case NotificationChannelType.critical:
         selectedChannel = criticalChannel;
-        importance = Importance.high;
-        priority = Priority.high;
+        resolvedImportance = importance ?? Importance.high;
+        resolvedPriority = priority ?? Priority.high;
         break;
       case NotificationChannelType.general:
         selectedChannel = generalChannel;
-        importance = Importance.defaultImportance;
-        priority = Priority.defaultPriority;
+        resolvedImportance = importance ?? Importance.defaultImportance;
+        resolvedPriority = priority ?? Priority.defaultPriority;
         break;
     }
 
-    const DarwinNotificationDetails iOSDetails = DarwinNotificationDetails();
-
-    AndroidNotificationDetails androidDetails = AndroidNotificationDetails(
+    final androidDetails = AndroidNotificationDetails(
       selectedChannel.id,
       selectedChannel.name,
       channelDescription: selectedChannel.description,
-      importance: importance,
-      priority: priority,
+      importance: resolvedImportance,
+      priority: resolvedPriority,
+      sound: sound != null ? RawResourceAndroidNotificationSound(sound) : null,
     );
 
-    NotificationDetails platformDetails =
-        NotificationDetails(android: androidDetails, iOS: iOSDetails);
+    final iOSDetails = DarwinNotificationDetails(
+      sound: sound != null ? '$sound.aiff' : null,
+    );
+
+    final platformDetails = NotificationDetails(
+      android: androidDetails,
+      iOS: iOSDetails,
+    );
     final now = DateTime.now();
     final scheduledDate = tz.TZDateTime.from(
       now.add(duration),
@@ -178,16 +230,17 @@ class NotificationService {
 
     try {
       await flutterLocalNotificationsPlugin.zonedSchedule(
-          DateTime.now().millisecondsSinceEpoch.remainder(100000),
-          title ?? "Scheduled Notification",
-          body,
-          scheduledDate,
-          platformDetails,
-          androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
-          uiLocalNotificationDateInterpretation:
-              UILocalNotificationDateInterpretation.absoluteTime,
-          payload: payload,
-          matchDateTimeComponents: DateTimeComponents.time);
+        DateTime.now().millisecondsSinceEpoch.remainder(100000),
+        title ?? "Scheduled Notification",
+        body,
+        scheduledDate,
+        platformDetails,
+        androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
+        uiLocalNotificationDateInterpretation:
+            UILocalNotificationDateInterpretation.absoluteTime,
+        payload: payload,
+        matchDateTimeComponents: DateTimeComponents.time,
+      );
 
       print("Notification scheduled for $scheduledDate");
     } catch (e) {
@@ -255,7 +308,10 @@ class NotificationService {
   }
 
   void _handleMessageTap(RemoteMessage message) {
-    // Handle navigation or logic when a message is tapped.
+    // For FCM, handle navigation if needed
+    if (onNotificationTap != null) {
+      onNotificationTap!(message.data['payload']);
+    }
     print('Notification clicked with data: ${message.data}');
   }
 }
