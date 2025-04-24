@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:convert';
 import 'dart:io';
 
 // import 'package:android_alarm_manager_plus/android_alarm_manager_plus.dart';
@@ -102,8 +103,9 @@ void notificationTapBackground(NotificationResponse notificationResponse) {
   }
 }
 
-Future<void> _showNotification(
-    String title, String body, String payload) async {
+//Show or Send the local notification
+Future<void> _showNotification(String title, String body, String payload,
+    {String? route}) async {
   const AndroidNotificationDetails androidNotificationDetails =
       AndroidNotificationDetails('your channel id', 'your channel name',
           channelDescription: 'your channel description',
@@ -116,13 +118,21 @@ Future<void> _showNotification(
           ticker: 'ticker');
   const NotificationDetails notificationDetails =
       NotificationDetails(android: androidNotificationDetails);
+
+  // Create a JSON payload with route information
+  final String payloadData = route != null
+      ? '{"route":"$route","imageUrl":"$payload"}'
+      : '{"imageUrl":"$payload"}';
+
   await flutterLocalNotificationsPlugin
-      .show(id++, title, body, notificationDetails, payload: payload);
+      .show(id++, title, body, notificationDetails, payload: payloadData);
 }
 
 Future<void> main() async {
+  // To use navigation logic
   final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
   String initialRoute = MyHomePage.routeName;
+
   WidgetsFlutterBinding.ensureInitialized();
   // await AndroidAlarmManager.initialize();
   // Set the background messaging handler early on
@@ -133,7 +143,11 @@ Future<void> main() async {
   if (Platform.isAndroid) {
     await FirebaseMessaging.instance.setAutoInitEnabled(true);
   }
+
+  //Handle Firebase Push notification the foreground and background messages
   FirebaseMessaging.onBackgroundMessage(_firebaseMessagingBackgroundHandler);
+
+  //Handle the on Firebase Push notification Opened App
   FirebaseMessaging.onMessageOpenedApp.listen((RemoteMessage message) {
     // Handle the message when the app is opened from a notification
     print('A new onMessageOpenedApp event was published!');
@@ -166,8 +180,8 @@ Future<void> main() async {
     // Handle the message here
   });
 
+  // Handle Firebase Push message when the app is in foreground
   FirebaseMessaging.onMessage.listen((RemoteMessage message) {
-    // Handle the message when the app is in foreground
     print('A new onMessage event was published!');
     print('Message data: ${message.data}');
     print('Message notification: ${message.notification?.title}');
@@ -180,13 +194,22 @@ Future<void> main() async {
 
     //Write the redirect logic
 
-    // Handle the message as local notification since the app is in foreground(not terminated or background)
+    // Handle firebase push notification message and send local notification since the app is in foreground( Firebase push notification will not be shown in foreground)
+
+    //Also handle the local notification tap
+    String? route;
+    if (message.data.containsKey('route')) {
+      route = message.data['route'];
+    }
+
+    // Pass the route to the local notification
     _showNotification(
         message.notification?.title ?? "No Title",
         message.notification?.body ?? "No body",
         message.notification?.android?.imageUrl ??
             message.notification?.apple?.imageUrl ??
-            "");
+            "",
+        route: route);
   });
 
   // Setting up new configuration push
@@ -271,6 +294,35 @@ Future<void> main() async {
     onDidReceiveBackgroundNotificationResponse: notificationTapBackground,
   );
 
+  // always Add this after the notification plugin initialization
+  selectNotificationStream.stream
+      .listen((NotificationResponse notificationResponse) {
+    if (notificationResponse.payload != null) {
+      try {
+        // Parse the JSON payload
+        final Map<String, dynamic> payloadMap =
+            jsonDecode(notificationResponse.payload!) as Map<String, dynamic>;
+
+        // Handle the route information
+        if (payloadMap.containsKey('route')) {
+          final String route = payloadMap['route'] as String;
+
+          // Navigate to the appropriate screen
+          if (route == '/promotion') {
+            navigatorKey.currentState?.pushNamed(PromotionScreen.routeName);
+          } else if (route == '/second') {
+            navigatorKey.currentState?.pushNamed(SecondPage.routeName);
+          } else {
+            // Default or other routes
+            navigatorKey.currentState?.pushNamed(MyHomePage.routeName);
+          }
+        }
+      } catch (e) {
+        print('Error parsing notification payload: $e');
+      }
+    }
+  });
+
   final NotificationAppLaunchDetails? notificationAppLaunchDetails = !kIsWeb &&
           Platform.isLinux
       ? null
@@ -290,6 +342,8 @@ Future<void> main() async {
     MaterialApp(
       navigatorKey: navigatorKey,
       initialRoute: initialRoute,
+
+      //Handle the route logic
       routes: <String, WidgetBuilder>{
         MyHomePage.routeName: (_) => MyHomePage(
               notificationAppLaunchDetails: notificationAppLaunchDetails,
