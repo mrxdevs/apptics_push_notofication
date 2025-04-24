@@ -7,7 +7,7 @@
     <!-- For apps with targetSDK 31 (Android 12) and newer -->
 
     <application
-        android:label="apptics_push_notofication"
+        android:label="Apptics Push App"
         android:name="${applicationName}"
         android:icon="@mipmap/ic_launcher">
         <activity
